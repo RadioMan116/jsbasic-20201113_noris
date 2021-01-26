@@ -1,75 +1,71 @@
 import createElement from '../../assets/lib/create-element.js';
 
 export default class Modal {
-	constructor() {
-	}
+  constructor() {
+    this.render();
 
-	setTitle(title) {
-		this.title = title;
-		let modalTitle = document.querySelector('.modal__title');
-		if (modalTitle) {
-			modalTitle.textContent = this.title;
-		}
-	}
+    this.elem.addEventListener('click', (event) => this.onClick(event));
+  }
 
-	setBody(node) {
-		this.body = node.outerHTML;
-		let modalBody = document.querySelector(".modal__body");
-		if (modalBody) {
-			modalBody.innerHTML = "";
-			modalBody.insertAdjacentElement('afterBegin', node);
-		}
-	}
+  render() {
+    this.elem = createElement(`
+      <div class="modal">
+        <div class="modal__overlay"></div>
+        <div class="modal__inner">
+          <div class="modal__header">
+            <button type="button" class="modal__close">
+              <img src="/assets/images/icons/cross-icon.svg" alt="close-icon" />
+            </button>
+            <h3 class="modal__title"></h3>
+          </div>
+          <div class="modal__body"></div>
+        </div>
+      </div>
+    `);
+  }
 
-	open() {
-		this.activeClass = "is-modal-open";
-		let modal = `
-			<div class='modal'>
-				<div class="modal__overlay"></div>
+  sub(ref) {
+    return this.elem.querySelector(`.modal__${ref}`);
+  }
 
-				<div class="modal__inner">
-					<div class="modal__header">
+  open() {
+    document.body.append(this.elem);
+    document.body.classList.add('is-modal-open');
 
-						<button type="button" class="modal__close">
-							<img src="/assets/images/icons/cross-icon.svg" alt="close-icon" />
-						</button>
+    this._keydownEventListener = (event) => this.onDocumentKeyDown(event);
+    document.addEventListener('keydown', this._keydownEventListener);
 
-						<h3 class="modal__title">
-							${this.title}
-						</h3>
-					</div>
+    if (this.elem.querySelector('[autofocus]')) {
+      this.elem.querySelector('[autofocus]').focus();
+    }
+  }
 
-					<div class="modal__body">
-						${this.body}
-					</div>
-				</div>
-			</div>`;
+  onClick(event) {
+    if (event.target.closest('.modal__close')) {
+      event.preventDefault();
+      this.close();
+    }
+  }
 
-		document.body.insertAdjacentHTML("beforeend", modal);
-		document.body.classList.add("is-modal-open");
+  onDocumentKeyDown(event) {
+    if (event.code === 'Escape') {
+      event.preventDefault();
+      this.close();
+    }
+  }
 
-		let closeButton = document.querySelector(".modal__close");
-		closeButton.addEventListener("click", () => this.close());
+  setTitle(title) {
+    this.sub('title').textContent = title;
+  }
 
-		window.addEventListener("keydown", this.EscClose);
+  setBody(node) {
+    this.sub('body').innerHTML = '';
+    this.sub('body').append(node);
+  }
 
-	}
-
-	EscClose = event => {
-		if (event.code === 'Escape') {
-			this.close();
-		}
-	}
-
-	close() {
-		let modal = document.querySelector(".modal")
-
-		if (modal) {
-			modal.remove();
-			document.body.classList.remove(this.activeClass);
-			window.removeEventListener("keydown", this.EscClose);
-		}
-
-
-	}
+  close() {
+    document.removeEventListener('keydown', this._keydownEventListener);
+    document.body.classList.remove('is-modal-open');
+    this.elem.remove();
+  }
 }

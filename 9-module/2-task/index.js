@@ -12,116 +12,96 @@ import Cart from '../../8-module/4-task/index.js';
 
 export default class Main {
 
-	constructor() {
-	}
+  constructor() {
+  }
 
-	async render() {
-		// ... ваш код
+  async render() {
+    this.renderCarousel();
+    this.renderRibbon();
+    this.renderStepSlider();
+    this.renderCartIcon()
 
-		let main = document.querySelector("main");
-		let checkboxNuts = main.querySelector("#nuts-checkbox");
-		let checkboxVegeterian = main.querySelector("#vegeterian-checkbox");
+    this.cart = new Cart(this.cartIcon);
 
-		//Карусель
-		let carouselSlides = new Carousel(slides);
-		let carousel = main.querySelector("[data-carousel-holder]");
-		carousel.insertAdjacentElement("beforeend", carouselSlides.elem);
+    this.products = await this.fetchProducts();
 
-		//Меню
-		let ribbonMenu = new RibbonMenu(categories);
-		let ribbon = main.querySelector("[data-ribbon-holder]");
-		ribbon.insertAdjacentElement("beforeend", ribbonMenu.elem);
+    this.renderProductsGrid();
 
+    this.productsGrid.updateFilter({
+      noNuts: document.getElementById('nuts-checkbox').checked,
+      vegeterianOnly: document.getElementById('vegeterian-checkbox').checked,
+      maxSpiciness: this.stepSlider.value,
+      category: this.ribbonMenu.value
+    });
 
-		//Слайдер
-		let stepSlider = new StepSlider({ steps: 5 });
-		let slider = main.querySelector("[data-slider-holder]");
-		slider.insertAdjacentElement("beforeend", stepSlider.elem);
+    document.body.addEventListener('product-add', ({ detail: productId }) => {
+      let product = this.products.find(product => product.id == productId);
+      this.cart.addProduct(product);
+    });
 
-		//логотип корзины
-		let cartIcon = new CartIcon();
-		let cartIconHolder = document.querySelector("[data-cart-icon-holder]");
-		cartIconHolder.append(cartIcon.elem);
+    this.stepSlider.elem.addEventListener('slider-change', ({ detail: value }) => {
+      this.productsGrid.updateFilter({
+        maxSpiciness: value
+      });
+    });
 
-		this.cart = new Cart(cartIcon);
+    this.ribbonMenu.elem.addEventListener('ribbon-select', ({ detail: categoryId }) => {
+      this.productsGrid.updateFilter({
+        category: categoryId
+      });
+    });
 
-		await fetch("products.json")
-			.then(response => response.json())
-			.then(products => {
-				console.log(products);
-				this.productsGrid = new ProductsGrid(products);
-				let productsHolder = main.querySelector("[data-products-grid-holder]");
-				productsHolder.innerHTML = "";
-				productsHolder.insertAdjacentElement("beforeend", this.productsGrid.elem);
+    document.getElementById('nuts-checkbox').onchange = event => {
+      this.productsGrid.updateFilter({
+        noNuts: event.target.checked
+      });
+    };
 
-				return products;
-			})
-			.then(products => {
+    document.getElementById('vegeterian-checkbox').onchange = event => {
+      this.productsGrid.updateFilter({
+        vegeterianOnly: event.target.checked
+      });
+    };
+  }
 
-				document.body.addEventListener("product-add", event => {
-					let productToAdd = products.find((product) => product.id === event.detail);
-					this.cart.addProduct(productToAdd)
-					console.log(event.detail)
-				})
-			})
-		// .then((products) => {
-		// 	let productParent = document.querySelector(".products-grid");
+  renderCarousel() {
+    this.carousel = new Carousel(slides);
 
-		// 	productParent.addEventListener('click', (event) => {
-		// 		let button = event.target.closest(".card__button");
-		// 		// let addProductId = event.target.closest(".card__title");
-		// 		let buttonCheck = event.path[2].querySelector(".card__title").textContent;
+    document.querySelector('[data-carousel-holder]').append(this.carousel.elem);
+  }
 
-		// 		if (button) {
-		// 			console.log(buttonCheck)
+  renderRibbon() {
+    this.ribbonMenu = new RibbonMenu(categories);
 
-		// 			let productToAdd = products.find((product) => product.id.split("-").join(" ") === buttonCheck.toLowerCase());
+    document.querySelector('[data-ribbon-holder]').append(this.ribbonMenu.elem);
+  }
 
-		// 			console.log(productToAdd)
+  renderStepSlider() {
+    this.stepSlider = new StepSlider({
+      steps: 5,
+      value: 3
+    });
 
-		// 			// if (productToAdd) {
-		// 			// 	this.cart.addProduct(productToAdd);
-		// 			// }
-		// 		}
-		// 	})
-		// })
+    document.querySelector('[data-slider-holder]').append(this.stepSlider.elem);
+  }
 
-		checkboxNuts.addEventListener("change", () => {
+  renderCartIcon() {
+    let cartIconHolder = document.querySelector('[data-cart-icon-holder]');
+    this.cartIcon = new CartIcon();
 
-			if (checkboxNuts.checked) {
-				this.productsGrid.updateFilter({
-					noNuts: checkboxNuts.checked
-				});
-			} else {
-				this.productsGrid.updateFilter({
-					noNuts: checkboxNuts.checked
-				});
-			}
-		})
+    cartIconHolder.append(this.cartIcon.elem);
+  }
 
-		checkboxVegeterian.addEventListener("change", () => {
+  renderProductsGrid() {
+    this.productsGrid = new ProductsGrid(this.products);
+    document.querySelector('[data-products-grid-holder]').innerHTML = '';
+    document.querySelector('[data-products-grid-holder]').append(this.productsGrid.elem);
+  }
 
-			if (checkboxVegeterian.checked) {
-				this.productsGrid.updateFilter({
-					vegeterianOnly: checkboxVegeterian.checked
-				});
-			} else {
-				this.productsGrid.updateFilter({
-					vegeterianOnly: checkboxVegeterian.checked
-				});
-			}
-		})
+  async fetchProducts() {
+    let response = await fetch('products.json');
+    let products = await response.json();
 
-		document.body.addEventListener("slider-change", event => {
-			this.productsGrid.updateFilter({
-				maxSpiciness: event.detail
-			})
-		})
-
-		document.body.addEventListener("ribbon-select", event => {
-			this.productsGrid.updateFilter({
-				category: event.detail
-			})
-		})
-	}
+    return products;
+  }
 }
